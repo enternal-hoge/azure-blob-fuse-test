@@ -1,0 +1,50 @@
+spec:
+  replicas: 1
+  template:
+    spec:
+      containers:
+        - name: fuse
+          resources:
+            requests:
+              cpu: "0.2"
+              memory: 2048Mi
+            limits:
+              cpu: "1.0"
+              memory: 2048Mi
+          env:
+          - name: SPRING_APPLICATION_JSON
+            value: '{"server":{"tomcat":{"max-threads":10}}}'
+          - name: JAVA_OPTIONS
+            value: '-Djavax.net.ssl.trustStore=/mnt/secrets/tel-cacerts.jks -Djavax.net.ssl.trustStorePassword=changeit'
+          volumeMounts:
+            - name: tel-cacerts
+              readOnly: true
+              mountPath: /mnt/secrets
+          readinessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 10
+            timeoutSeconds: 60
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+          livenessProbe:
+            httpGet:
+              path: /actuator/health
+              port: 8080
+              scheme: HTTP
+            initialDelaySeconds: 180
+            timeoutSeconds: 60
+            periodSeconds: 10
+            successThreshold: 1
+            failureThreshold: 3
+      volumes:
+        - name: tel-cacerts
+          secret:
+            secretName: tel-cacerts
+            items:
+              - key: tel-cacerts.jks
+                path: tel-cacerts.jks
+            defaultMode: 420

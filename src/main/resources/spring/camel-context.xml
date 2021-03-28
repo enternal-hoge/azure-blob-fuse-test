@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+    xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd        http://camel.apache.org/schema/spring       http://camel.apache.org/schema/spring/camel-spring.xsd">
+    <camelContext id="camel" xmlns="http://camel.apache.org/schema/spring">
+
+        <onException>
+            <exception>java.lang.Exception</exception>
+            <handled>
+                <constant>true</constant>
+            </handled>
+            <log loggingLevel="ERROR" message="${exception.message}" />
+            <setHeader headerName="Exchange.HTTP_RESPONSE_CODE">
+                <constant>500</constant>
+            </setHeader>
+            <setHeader headerName="Exchange.CONTENT_TYPE">
+                <constant>application/json</constant>
+            </setHeader>
+            <setBody>
+                <simple>{ "errorCode": "500", "errorMsg": "${exception.message}" }\n</simple>
+            </setBody>
+        </onException>
+
+        <route id="timer-trigger">
+            <from uri="timer:sync?period={{sync.trigger.interval}}&amp;delay={{sync.trigger.delay}}"/>
+            <log message="== start ==" />
+            <setBody>
+                <method method="download({{azure.blob.storage.name}},{{azure.blob.storage.value}},{{azure.blob.storage.url}},{{azure.blob.container.name}},{{azure.blob.name}})" ref="azure-blob" />
+                <!--
+                <method method="download()" ref="azure-blob" />
+                -->
+            </setBody>
+            <to uri="mock:result"/>
+        </route>
+        
+    </camelContext>
+</beans>
